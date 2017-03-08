@@ -26,11 +26,13 @@ export default class Login extends Component {
       this._sendVerifyCode = this._sendVerifyCode.bind(this);
       this._showVerifyCode = this._showVerifyCode.bind(this);
       this._countingDone = this._countingDone.bind(this);
+      this._submit = this._submit.bind(this);
   }
 
   _showVerifyCode() {
       this.setState({
-        codeSent: true
+        codeSent: true,
+        countingDone: false
       })
   }
 
@@ -38,7 +40,8 @@ export default class Login extends Component {
       var _this = this;
       var phoneNumber = this.state.phoneNumber;
       if(!phoneNumber) {
-        AlertIOS.alert('手机号不能为空')
+        AlertIOS.alert('手机号不能为空');
+        return;
       }
       var body = {
         phoneNumber: phoneNumber
@@ -64,23 +67,52 @@ export default class Login extends Component {
       })
   }
 
+  _submit() {
+      var _this = this;
+      var phoneNumber = this.state.phoneNumber;
+      var verifyCode = this.state.verifyCode;
+      if(!phoneNumber || !verifyCode) {
+        AlertIOS.alert('手机号和验证码不能为空');
+        return;
+      }
+      var body = {
+        phoneNumber: phoneNumber,
+        verifyCode: verifyCode
+      }
+
+      var siginupUrl = config.api.base + config.api.verify;
+      request.post(siginupUrl, body)
+          .then((data) => {
+              if(data && data.success) {
+                  _this.props.afterLogin(data.data);
+              }else {
+                  AlertIOS.alert('获取验证码失败，请检查手机号是否正确')
+              }
+          })
+          .catch((err) => {
+              AlertIOS.alert('获取验证码失败，请检查网络是否通畅')
+          })
+  }
+
   render() {
     return (
       <View style={styles.container}>
           <View style={styles.signupBox}>
               <Text style={styles.title}>快速登录</Text>
-              <TextInput 
-                  placeholder={'输入手机号'}
-                  autoCapitalize={'none'}
-                  autoCorrect={false}
-                  keyboardType={'number-pad'}
-                  style={styles.phoneNumber}
-                  onChangeText={(text) => {
-                      this.setState({
-                        phoneNumber: text
-                      })
-                  }}
-              />
+              <View style={styles.phoneNumber}>
+                <TextInput 
+                    placeholder={'输入手机号'}
+                    autoCapitalize={'none'}
+                    autoCorrect={false}
+                    keyboardType={'number-pad'}
+                    style={styles.inputField}
+                    onChangeText={(text) => {
+                        this.setState({
+                          phoneNumber: text
+                        })
+                    }}
+                />
+              </View>
 
               {
                   this.state.codeSent
@@ -154,12 +186,7 @@ var styles = StyleSheet.create({
   },
 
   phoneNumber: {
-    height: 40,
-    padding: 5,
-    color: '#666',
-    fontSize: 16,
-    backgroundColor: '#fff',
-    borderRadius: 4
+    height: 40
   },
 
   btn: {

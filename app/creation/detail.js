@@ -416,7 +416,6 @@ export default class Detail extends Component {
         <Modal
           animationType={'slide'}
           visible={this.state.modalVisible}
-          onRequestClose={() => this._setModalVisible(false)}
           >
           <View style={styles.modalContainer}>
             <Icon onPress={this._closeModal} name='ios-close-outline' style={styles.closeIcon}/>

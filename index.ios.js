@@ -8,14 +8,16 @@ import React, { Component } from 'react';
 import Icon from 'react-native-vector-icons/Ionicons';
 import List from './app/creation/index';
 import Edit from './app/edit/index';
-import Account from './app/account/login';
+import Account from './app/account/index';
+import Login from './app/account/login'
 import {
   AppRegistry,
   StyleSheet,
   Text,
   View,
   TabBarIOS,
-  Navigator
+  Navigator,
+  AsyncStorage
 } from 'react-native';
 
 
@@ -24,12 +26,65 @@ export default class imoocApp extends Component {
   constructor(props){
     super(props);
     this.state = {
-      selectedTab: 'account'
+      selectedTab: 'account',
+      isLogin: false
     }
 
+    this._asyncAppStatus = this._asyncAppStatus.bind(this);
+    this._afterLogin = this._afterLogin.bind(this);
+    this._logout = this._logout.bind(this);
+  }
+
+  _asyncAppStatus() {
+    var _this = this;
+    AsyncStorage.getItem('user')
+      .then((data) => {
+        var user = null;
+        var newState = {};
+
+        if(data) {
+          user = JSON.parse(data)
+        }
+
+        if(user && user.accessToken) {
+          newState.user = user;
+          newState.isLogin = true
+        }else {
+          newState.isLogin = false
+        }
+
+        _this.setState(newState)
+      })
+  }
+
+  componentDidMount() {
+    this._asyncAppStatus()
+  }
+
+  _afterLogin(user) {
+    var _this = this;
+    console.log(user);
+    AsyncStorage.setItem('user', JSON.stringify(user))
+      .then((data) => {
+        _this.setState({
+          user: user,
+          isLogin: true
+        })
+      })
+  }
+
+  _logout() {
+    AsyncStorage.removeItem('user');
+    this.setState({
+      isLogin: false,
+      user: null
+    })
   }
 
   render() {
+    if(!this.state.isLogin) {
+      return <Login afterLogin={this._afterLogin}/> 
+    }
     return (
       <TabBarIOS tintColor="#ee735c">
         <Icon.TabBarItem
@@ -75,7 +130,7 @@ export default class imoocApp extends Component {
               selectedTab: 'account'
             });
           }}>
-          <Account />
+          <Account user={this.state.user} logout={this._logout}/>
         </Icon.TabBarItem>
       </TabBarIOS>
     );

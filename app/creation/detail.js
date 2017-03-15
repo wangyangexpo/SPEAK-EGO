@@ -11,7 +11,8 @@ import {
   TextInput,
   Modal,
   AlertIOS,
-  ProgressViewIOS
+  ProgressViewIOS,
+  AsyncStorage
 } from 'react-native';
 
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -22,6 +23,21 @@ import request from '../common/request'
 import config from '../common/config'
 
 const width = Dimensions.get('window').width;
+
+function avatar(src,type) {
+  // 头像地址是http地址 或者本地的地址
+  if(src && (src.indexOf('http') > -1 || src.indexOf('data:image')) > -1) {
+    return src;
+  }
+
+  // 头像地址是cloud 地址
+  if(config.cloud === 'qiniu') {
+    return config.qiniu.store_url + src;
+  }
+  else {
+    return config.cloudinary.base + '/' + type + '/upload/' + src;
+  }
+}
 
 var cacheResult = {
   nextPage: 1,
@@ -36,6 +52,8 @@ export default class Detail extends Component {
       rowHasChanged: (r1,r2) => r1 !== r2
     })
     this.state = {
+      user: {},
+
       // modal
       modalVisible: false,
       animationType: 'none',
@@ -66,15 +84,14 @@ export default class Detail extends Component {
     this._pauseOrResume = this._pauseOrResume.bind(this);
     this._onError = this._onError.bind(this);
 
-    this._fetchData = this._fetchData.bind(this);
-    this._fetchMoreData = this._fetchMoreData.bind(this);
+    this._fetchCommentData = this._fetchCommentData.bind(this);
+    this._fetchMoreComment = this._fetchMoreComment.bind(this);
     this._renderFooter = this._renderFooter.bind(this);
 
     this._renderHeader = this._renderHeader.bind(this);
 
     this._setModalVisible = this._setModalVisible.bind(this);
     this._focus = this._focus.bind(this);
-    this._blur = this._blur.bind(this);
     this._closeModal = this._closeModal.bind(this);
     this._submitComment = this._submitComment.bind(this);
   }
@@ -145,12 +162,24 @@ export default class Detail extends Component {
   }
 
   componentDidMount() {
+    var _this = this;
     cacheResult = {
       nextPage: 1,
       items: [],
       total: 0
     }
-    this._fetchData(1)
+    AsyncStorage.getItem('user')
+      .then((data) => {
+        var user = JSON.parse(data);
+        if(user && user.accessToken) {
+          _this.setState({
+            user:user
+          })
+          _this._fetchCommentData(1);
+        } else {
+          _this.props.logout();
+        }
+      })
   }
 
   _renderRow(row) {
@@ -164,18 +193,19 @@ export default class Detail extends Component {
             </View>)
   }
 
-  _fetchData(page) {
+  _fetchCommentData(page) {
     var _this= this;
+    var creation = this.props.data;
+    var accessToken = this.state.user.accessToken;
 
     this.setState({
       isLoadingTail: true
     })
-    
 
     request.get(config.api.base + config.api.comment,
       {
-        creation: 123,
-        accessToken:'avc',
+        creationId: creation._id,
+        accessToken:accessToken,
         page: page
       })
       .then((data) => {
@@ -205,17 +235,17 @@ export default class Detail extends Component {
   }
 
   _hasMore() {
-    return cacheResult.items.length !== cacheResult.total;
+    return cacheResult.items.length < cacheResult.total;
   }
 
-  _fetchMoreData() {
+  _fetchMoreComment() {
       if(!this._hasMore() || this.state.isLoadingTail) {
         return
       }
 
       let page = cacheResult.nextPage;
 
-      this._fetchData(page);
+      this._fetchCommentData(page);
   }
 
   // commentsList Footer
@@ -242,7 +272,7 @@ export default class Detail extends Component {
     return (
       <View style={styles.listHeader}>
         <View style={styles.infoBox}>
-          <Image style={styles.avatar} source={{uri: data.author.avatar}}/>
+          <Image style={styles.avatar} source={{uri: avatar(this.state.user.avatar, 'image')}}/>
           <View style={styles.descBox}>
               <Text style={styles.nickName}>{data.author.nickName}</Text>
               <Text style={styles.title}>{data.title}</Text>
@@ -274,10 +304,6 @@ export default class Detail extends Component {
     this.setState({
       modalVisible: isVisible
     })
-  }
-
-  _blur() {
-
   }
 
   _closeModal() {
@@ -351,7 +377,7 @@ export default class Detail extends Component {
         <View style={styles.videoBox}>
           <Video 
             ref='videoPlay'
-            source={require('../dataSource/funny.mp4')}
+            source={{uri: config.qiniu.list_url + data.video}}
             style={styles.video}
             volume={4}
             paused={this.state.paused}
@@ -405,7 +431,7 @@ export default class Detail extends Component {
 
           renderHeader={this._renderHeader}
           renderFooter={this._renderFooter}
-          onEndReached={this._fetchMoreData}
+          onEndReached={this._fetchMoreComment}
           onEndReachedThreshold={20}
 
           enableEmptySections={true}
@@ -530,7 +556,7 @@ var styles = StyleSheet.create({
   loading: {
     position: 'absolute',
     left: 0,
-    top: 80,
+    top: 95,
     width: width,
     alignSelf: 'center',
     backgroundColor: 'transparent'

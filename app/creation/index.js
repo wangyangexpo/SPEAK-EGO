@@ -10,7 +10,8 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
-  AlertIOS
+  AlertIOS,
+  AsyncStorage
 } from 'react-native';
 
 import request from '../common/request'
@@ -71,7 +72,7 @@ class Item extends Component {
           <View style={styles.item}>
             <Text style={styles.title}>{row.title}</Text>
             <Image
-              source={{uri: row.thumb}}
+              source={{uri: config.qiniu.list_url + row.thumb}}
               style={styles.thumb}>
             <Icon name='ios-play' size={28} style={styles.play}/>
             </Image>
@@ -97,12 +98,12 @@ class Item extends Component {
 export default class List extends Component {
   constructor(props){
     super(props);
-
     var ds = new ListView.DataSource({
       rowHasChanged: (r1,r2) => r1 !== r2
     })
 
     this.state={
+      user: null,
       dataSource: ds.cloneWithRows([]),
       isLoadingTail: false,
       isRefreshing: false
@@ -116,12 +117,25 @@ export default class List extends Component {
   }
 
   componentDidMount() {
+    var _this = this;
     cacheResult = {
       nextPage: 1,
       items: [],
       total: 0
     }
-    this._fetchData();
+    AsyncStorage.getItem('user')
+      .then((data) => {
+        var user = JSON.parse(data);
+        if(user && user.accessToken) {
+          _this.setState({
+            user:user
+          })
+          _this._fetchData(1);
+        } else {
+          _this.props.logout();
+        }
+      })
+    
   }
 
   _fetchData(page) {
@@ -137,13 +151,17 @@ export default class List extends Component {
       })
     }
     
+    var accessToken = this.state.user.accessToken;
 
+    console.log(page);
     request.get(config.api.base + config.api.creations,
       {
-        accessToken:'avc',
+        accessToken: accessToken,
         page: page
       })
       .then((data) => {
+
+        console.log(data);
 
         if(data.success) {
           let items = cacheResult.items.slice();
@@ -183,7 +201,7 @@ export default class List extends Component {
   }
 
   _hasMore() {
-    return cacheResult.items.length !== cacheResult.total;
+    return cacheResult.items.length < cacheResult.total;
   }
 
   _fetchMoreData() {
@@ -205,6 +223,14 @@ export default class List extends Component {
       )
     }
 
+    if(cacheResult.total === 0) {
+      return (
+          <View style={styles.loadingMore}>
+            <Text style={styles.loadingText}>还没有新鲜事...</Text>
+          </View>
+      )
+    }
+
     if(!this.state.isLoadingTail) {
       return <View style={styles.loadingMore}/>
     }
@@ -214,7 +240,7 @@ export default class List extends Component {
   }
 
   _onRefresh() {
-      if(!this._hasMore() || this.state.isRefreshing) {
+      if(this.state.isRefreshing) {
         return
       }
 

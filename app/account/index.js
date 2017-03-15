@@ -22,32 +22,20 @@ import config from '../common/config'
 
 const width = Dimensions.get('window').width;
 
-const photoOptions = {
-  title: '选择头像',
-  cancelButtonTitle: '取消',
-  takePhotoButtonTitle: '拍照',
-  chooseFromLibraryButtonTitle: '从相册',
-  quality: 0.75,
-  allowsEditing: true,
-  noData: false,
-  storageOptions: {
-    skipBackup: true,
-    path: 'images'
-  }
-};
-
-
 const signatureURL = config.api.base + config.api.signature;
 
-function avatar(id,type) {
-  if(id.indexOf('http') > -1 || id.indexOf('data:image') > -1) {
-    return id;
+function avatar(src,type) {
+  // 头像地址是http地址 或者本地的地址
+  if(src.indexOf('http') > -1 || src.indexOf('data:image') > -1) {
+    return src;
   }
-  if(id.indexOf('avatar/') > -1) {
-    return config.cloudinary.base + '/' + type + '/upload/' + id;
+
+  // 头像地址是cloud 地址
+  if(config.cloud === 'qiniu') {
+    return config.qiniu.store_url + src;
   }
   else {
-    return 'http://omhg2i5xo.bkt.clouddn.com/' + id;
+    return config.cloudinary.base + '/' + type + '/upload/' + src;
   }
 }
 
@@ -101,49 +89,20 @@ export default class Account extends Component {
     })
   }
 
-  _getQiniuToken() {
+  _getQiniuToken(response) {
+    var _this = this;
+    var uri = response.uri;
     var accessToken = this.state.user.accessToken;
     return request.post(signatureURL, {
         accessToken: accessToken,
+        type: 'avatar',
         cloud: 'qiniu'
       })
       .catch((err) => {
         console.log(err)
       })
-  }
-
-  _getCloudinaryToken() {
-    return request.post(signatureURL, {
-        accessToken: accessToken,
-        timestamp: timestamp,
-        type: 'avatar'
-      })
-      .catch((err) => {
-        console.log(err)
-      })
-  }
-
-  _pickPhoto() {
-    var _this = this;
-    showImagePicker(photoOptions, (response) => {
-
-      if (response.didCancel) {
-        return;
-      }
-
-      var avatarData = 'data:image/jpeg;base64,' + response.data;
-
-      //var timestamp = Date.now();
-      //var tags = 'app,avatar';
-      //var folder = 'avatar';
-
-      var uri = response.uri;
-
-      // 七牛 服务
-      _this._getQiniuToken()
-        .then((data) => {
+      .then((data) => {
           if(data && data.success) {
-            console.log(data);
 
             var token = data.data.token;
             var key = data.data.key;
@@ -160,26 +119,57 @@ export default class Account extends Component {
             _this._upload(body)
           }
         })
+  }
 
-      // cloudinary 服务
-      // _this._getCloudinaryToken(accessToken, timestamp)
-      //   .then((data) => {
-      //     if(data && data.success) {
-      //       var signature = data.data;
-      //       var body = new FormData();
+  _getCloudinaryToken(response) {
+    var _this = this;
+    var accessToken = this.state.user.accessToken;
+    var timestamp = Date.now();
+    var tags = 'app,avatar';
+    var folder = 'avatar';
+    var avatarData = 'data:image/jpeg;base64,' + response.data;
 
-      //       body.append('folder', folder);
-      //       body.append('signature', signature);
-      //       body.append('tags', tags);
-      //       body.append('api_key', config.cloudinary.api_key);
-      //       body.append('resource_type', 'image');
-      //       body.append('file', avatarData);
-      //       body.append('timestamp', timestamp);
+    return request.post(signatureURL, {
+        accessToken: accessToken,
+        timestamp: timestamp,
+        type: 'avatar'
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+      .then((data) => {
+        if(data && data.success) {
+          var token = data.data.token;
+          var body = new FormData();
 
-      //       _this._upload(body)
-      //     }
-      //   })
+          body.append('folder', folder);
+          body.append('signature', token);
+          body.append('tags', tags);
+          body.append('api_key', config.cloudinary.api_key);
+          body.append('resource_type', 'image');
+          body.append('file', avatarData);
+          body.append('timestamp', timestamp);
+
+          _this._upload(body)
+        }
+      })
+  }
+
+  _pickPhoto() {
+    var _this = this;
+    showImagePicker(config.photoOptions, (response) => {
+
+      if (response.didCancel) {
+        return;
+      }
       
+      if(config.cloud === 'qiniu') {
+        // 七牛 服务
+        _this._getQiniuToken(response);
+      } else {
+        // cloudinary 服务
+        _this._getCloudinaryToken(response)
+      }
 
     });
   }
@@ -211,7 +201,13 @@ export default class Account extends Component {
   _upload(body) {
     var _this = this;
     var xhr = new XMLHttpRequest();
-    var url = config.qiniu.upload;
+    var url;
+
+    if(config.cloud === 'qiniu') {
+      url = config.qiniu.upload;
+    } else {
+      url = config.cloudinary.image;
+    }
 
     _this.setState({
       avatarUploading: true,

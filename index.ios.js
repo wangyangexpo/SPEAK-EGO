@@ -26,7 +26,7 @@ export default class imoocApp extends Component {
   constructor(props){
     super(props);
     this.state = {
-      selectedTab: 'account',
+      selectedTab: 'edit',
       isLogin: false
     }
 
@@ -97,6 +97,7 @@ export default class imoocApp extends Component {
             });
           }}>
           <Navigator 
+            logout={this._logout}
             initialRoute={{
               name: 'list',
               component: List

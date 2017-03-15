@@ -258,6 +258,14 @@ export default class Detail extends Component {
       )
     }
 
+    if(cacheResult.total === 0) {
+      return (
+          <View style={styles.loadingMore}>
+            <Text style={[styles.loadingText, styles.left]}>还没有人评论...</Text>
+          </View>
+      )
+    }
+
     if(!this.state.isLoadingTail) {
       return <View style={styles.loadingMore}/>
     }
@@ -272,7 +280,7 @@ export default class Detail extends Component {
     return (
       <View style={styles.listHeader}>
         <View style={styles.infoBox}>
-          <Image style={styles.avatar} source={{uri: avatar(this.state.user.avatar, 'image')}}/>
+          <Image style={styles.avatar} source={{uri: avatar(data.author.avatar, 'image')}}/>
           <View style={styles.descBox}>
               <Text style={styles.nickName}>{data.author.nickName}</Text>
               <Text style={styles.title}>{data.title}</Text>
@@ -372,7 +380,7 @@ export default class Detail extends Component {
                 <Icon name='ios-arrow-back' style={styles.backIcon}/>
                 <Text style={styles.backText}>返回</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle} numberOflines={1}>视频详情页</Text>
+            <Text style={styles.headerTitle} numberOflines={1}>{data.title}</Text>
         </View>
         <View style={styles.videoBox}>
           <Video 
@@ -525,6 +533,8 @@ var styles = StyleSheet.create({
   },
 
   headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
     width: width - 120,
     textAlign: 'center'
   },
@@ -672,6 +682,11 @@ var styles = StyleSheet.create({
   loadingText: {
     color: '#777',
     textAlign: 'center'
+  },
+
+  left: {
+    textAlign: 'left',
+    paddingLeft: 15
   },
 
   commentBox: {

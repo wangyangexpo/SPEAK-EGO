@@ -134,7 +134,8 @@ export default class Edit extends Component {
       videoProgress: 1,
       recording: false,
       paused: true,
-      recordDone: true
+      recordDone: true,
+      audioPlaying: false
     })
   }
 
@@ -180,8 +181,7 @@ export default class Edit extends Component {
       videoProgress: 0,
       recording: true,
       counting: false,
-      paused: false,
-      recordDone: false
+      paused: false
     })
 
     AudioRecorder.startRecording();
@@ -191,7 +191,8 @@ export default class Edit extends Component {
   _counting() {
     if(!this.state.counting && !this.state.recording && !this.state.audioPlaying) {
       this.setState({
-        counting: true
+        counting: true,
+        recordDone: false
       })
     }
     
@@ -482,7 +483,7 @@ export default class Edit extends Component {
         <View style={styles.toolBar}>
           <Text style={styles.toolBarTitle}>
             {
-              this.state.previewVideo ? '' : '理解狗狗，从配音开始'
+              this.state.previewVideo ? '' : '上传我的新鲜事'
             }
           </Text>
           {

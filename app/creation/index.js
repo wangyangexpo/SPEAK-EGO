@@ -118,6 +118,8 @@ export default class List extends Component {
 
   componentDidMount() {
     var _this = this;
+    // 这里设置初始的 total > 0 是为了触发 onreachended 方法的第一次加载
+    // 因为list页面 进入就会 默认触发一次 onreachended
     cacheResult = {
       nextPage: 1,
       items: [],
@@ -152,19 +154,26 @@ export default class List extends Component {
     }
     
     var accessToken = this.state.user.accessToken;
-
-    console.log(page);
+    var items = cacheResult.items.slice();
+    var s_id,e_id;
+    if(items.length > 0) {
+      console.log(items);
+      s_id = items[0]._id;
+      e_id = items[items.length - 1]._id;
+    } 
     request.get(config.api.base + config.api.creations,
       {
         accessToken: accessToken,
-        page: page
+        page: page,
+        startId: s_id,
+        endId: e_id
       })
       .then((data) => {
 
         console.log(data);
 
         if(data.success) {
-          let items = cacheResult.items.slice();
+          
 
           if(page !== 0) {
               cacheResult.nextPage += 1;
@@ -205,12 +214,13 @@ export default class List extends Component {
   }
 
   _fetchMoreData() {
+      // onreachended方法在set datasource的时候如果 数目较少，会自动触发一次
+
       if(!this._hasMore() || this.state.isLoadingTail) {
         return
       }
 
       let page = cacheResult.nextPage;
-
       this._fetchData(page);
   }
 

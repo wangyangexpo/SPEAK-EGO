@@ -72,7 +72,7 @@ class Item extends Component {
           <View style={styles.item}>
             <Text style={styles.title}>{row.title}</Text>
             <Image
-              source={{uri: config.qiniu.list_url + row.thumb}}
+              source={{uri: config.qiniu.computed_url + row.thumb}}
               style={styles.thumb}>
             <Icon name='ios-play' size={28} style={styles.play}/>
             </Image>

@@ -206,6 +206,8 @@ export default class Edit extends Component {
         return;
       }
 
+      console.log(response);
+
       var uri = response.uri;
       var state = _.clone(defaultState);
       state.previewVideo = uri;

@@ -18,8 +18,8 @@ var config = {
 	},
 	qiniu: {
 		upload: 'http://up-z2.qiniu.com',
-		store_url: 'http://omhg2i5xo.bkt.clouddn.com/', // qiniu图片库地址（测试地址）
-		list_url: 'http://omsa0hz7y.bkt.clouddn.com/'
+		avatar_url: 'http://omhg2i5xo.bkt.clouddn.com/', // qiniu图片库地址（测试地址）
+		computed_url: 'http://omsa0hz7y.bkt.clouddn.com/'
 	},
 	api: {
 		// rap接口
@@ -57,7 +57,7 @@ var config = {
 	    chooseFromLibraryButtonTitle: '选择已有视频',
 	    videoQuality: 'medium',
 	    mediaType: 'video',
-	    durationLimit: 20,
+	    durationLimit: 10,
 	    noData: false,
 	      storageOptions: {
 	      skipBackup: true,

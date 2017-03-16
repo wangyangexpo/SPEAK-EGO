@@ -32,7 +32,7 @@ function avatar(src,type) {
 
   // 头像地址是cloud 地址
   if(config.cloud === 'qiniu') {
-    return config.qiniu.store_url + src;
+    return config.qiniu.avatar_url + src;
   }
   else {
     return config.cloudinary.base + '/' + type + '/upload/' + src;
